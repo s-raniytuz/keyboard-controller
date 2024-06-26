@@ -4,15 +4,21 @@ export default class FrequencyKeyboardController {
   private _secondOctave: number;
   private _isLinked: boolean;
   private _autoRestart: boolean;
+  private _frequencyMappingObject: { [key: string]: number };
   private _keydownTrigger: (e: KeyboardEvent) => void;
   private _keyupTrigger: (e: KeyboardEvent) => void;
   private _linkedKeydownTrigger: ((e: KeyboardEvent) => void) | undefined;
   private _linkedKeyupTrigger: ((e: KeyboardEvent) => void) | undefined;
 
-  constructor(baseFrequency = 220, lowOctave = 1, highOctave = 2) {
+  constructor(
+    autoRestart: boolean = false,
+    baseFrequency: number = 440,
+    lowOctave: number = 1,
+    highOctave: number = 2
+  ) {
     this._baseFrequency = baseFrequency;
     this._keydownTrigger = (e: KeyboardEvent) => {
-      console.log(`Keydown event: ${e.key}`);
+      console.log(`Keydown event: ${this._frequencyMappingObject[e.key]}`);
     };
     this._keyupTrigger = (e: KeyboardEvent) => {
       console.log(`Keyup event: ${e.key}`);
@@ -22,7 +28,44 @@ export default class FrequencyKeyboardController {
     this._firstOctave = lowOctave;
     this._secondOctave = highOctave;
     this._isLinked = false;
-    this._autoRestart = false;
+    this._autoRestart = autoRestart;
+    this._frequencyMappingObject = {
+      z: (1.1892 / 2) * this._baseFrequency * this._firstOctave,
+      q: (1.1892 / 2) * this._baseFrequency * this._secondOctave,
+
+      s: 1.2599 / 2,
+      2: 1.2599 / 2,
+
+      x: 1.3348 / 2,
+      w: 1.3348 / 2,
+
+      d: 1.4142 / 2,
+      3: 1.4142 / 2,
+
+      c: 1.4983 / 2,
+      e: 1.4983 / 2,
+
+      v: 1.5874 / 2,
+      r: 1.5874 / 2,
+
+      g: 1.6818 / 2,
+      5: 1.6818 / 2,
+
+      b: 1.7818 / 2,
+      t: 1.7818 / 2,
+
+      h: 1.8897 / 2,
+      6: 1.8897 / 2,
+
+      n: 1,
+      y: 1,
+
+      j: 1.0595,
+      u: 1.0595,
+
+      m: 1.1225,
+      8: 1.1225,
+    };
   }
 
   set baseFrequency(newBaseFrequency: number) {
@@ -80,15 +123,40 @@ export default class FrequencyKeyboardController {
     return this._isLinked;
   }
 
+  get autoRestart(): boolean {
+    return this._autoRestart;
+  }
+  set autoRestart(restartOption: boolean) {
+    this._autoRestart = restartOption;
+  }
+
   set keydownTrigger(handleKeydown: (e: KeyboardEvent) => void) {
-    this._keydownTrigger = handleKeydown;
+    if (handleKeydown != this._keydownTrigger) {
+      this._keydownTrigger = handleKeydown;
+      if (this._autoRestart) {
+        this.restart();
+      }
+    } else {
+      throw new Error(
+        "The new keydown trigger is equal to the keydown trigger stored in the controller. Pass a new function to update the trigger."
+      );
+    }
   }
   get keydownTrigger(): (e: KeyboardEvent) => void {
     return this._keydownTrigger;
   }
 
   set keyupTrigger(handleKeyup: (e: KeyboardEvent) => void) {
-    this._keyupTrigger = handleKeyup;
+    if (handleKeyup != this._keyupTrigger) {
+      this._keyupTrigger = handleKeyup;
+      if (this._autoRestart) {
+        this.restart();
+      }
+    } else {
+      throw new Error(
+        "The new keyup trigger is equal to the keyup trigger stored in the controller. Pass a new function to update the trigger."
+      );
+    }
   }
   get keyupTrigger(): (e: KeyboardEvent) => void {
     return this._keyupTrigger;
