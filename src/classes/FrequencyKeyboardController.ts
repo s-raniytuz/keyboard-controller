@@ -1,3 +1,8 @@
+import {
+  KeyPropsType,
+  ControllerOutputType,
+} from "../types/KeyboardControllerTypes";
+
 export default class FrequencyKeyboardController {
   private _baseFrequency: number;
   private _firstOctave: number;
@@ -5,26 +10,23 @@ export default class FrequencyKeyboardController {
   private _isLinked: boolean;
   private _autoRestart: boolean;
   private _frequencyMappingObject: { [key: string]: number };
+  private _bindedKeys: string[];
   private _keydownTrigger: (e: KeyboardEvent) => void;
   private _keyupTrigger: (e: KeyboardEvent) => void;
   private _linkedKeydownTrigger: ((e: KeyboardEvent) => void) | undefined;
   private _linkedKeyupTrigger: ((e: KeyboardEvent) => void) | undefined;
+  private _controllerOutputAttack: ControllerOutputType;
+  private _controllerOutputRelease: ControllerOutputType;
 
   constructor(
+    controllerOutputAttack?: (keyPropertyObject: KeyPropsType) => void,
+    controllerOutputRelease?: (keyPropertyObject: KeyPropsType) => void,
     autoRestart: boolean = false,
     baseFrequency: number = 440,
     lowOctave: number = 1,
     highOctave: number = 2
   ) {
     this._baseFrequency = baseFrequency;
-    this._keydownTrigger = (e: KeyboardEvent) => {
-      console.log(`Keydown event: ${this._frequencyMappingObject[e.key]}`);
-    };
-    this._keyupTrigger = (e: KeyboardEvent) => {
-      console.log(`Keyup event: ${e.key}`);
-    };
-    this._linkedKeydownTrigger = undefined;
-    this._linkedKeyupTrigger = undefined;
     this._firstOctave = lowOctave;
     this._secondOctave = highOctave;
     this._isLinked = false;
@@ -66,6 +68,45 @@ export default class FrequencyKeyboardController {
       m: 1.1225,
       8: 1.1225,
     };
+
+    this._bindedKeys = Object.keys(this._frequencyMappingObject);
+
+    this._keydownTrigger = (e: KeyboardEvent) => {
+      if (!e.repeat && this._bindedKeys.includes(e.key)) {
+        this._controllerOutputAttack({
+          key: e.key,
+          frequency: this._frequencyMappingObject[e.key],
+        });
+      }
+    };
+
+    this._keyupTrigger = (e: KeyboardEvent) => {
+      if (!e.repeat && this._bindedKeys.includes(e.key)) {
+        this._controllerOutputRelease({
+          key: e.key,
+          frequency: this._frequencyMappingObject[e.key],
+        });
+      }
+    };
+
+    this._linkedKeydownTrigger = undefined;
+    this._linkedKeyupTrigger = undefined;
+
+    if (!controllerOutputAttack) {
+      this._controllerOutputAttack = (keyProps: KeyPropsType) => {
+        console.log(`Controller output 'Attack': ${keyProps.key}`);
+      };
+    } else {
+      this._controllerOutputAttack = controllerOutputAttack;
+    }
+
+    if (!controllerOutputRelease) {
+      this._controllerOutputRelease = (keyProps: KeyPropsType) => {
+        console.log(`Controller output 'Release': ${keyProps.key}`);
+      };
+    } else {
+      this._controllerOutputRelease = controllerOutputRelease;
+    }
   }
 
   set baseFrequency(newBaseFrequency: number) {
@@ -168,6 +209,20 @@ export default class FrequencyKeyboardController {
 
   get linkedKeyupTrigger(): ((e: KeyboardEvent) => void) | undefined {
     return this._linkedKeyupTrigger;
+  }
+
+  set controllerOutputAttack(newOutputAttack: ControllerOutputType) {
+    this._controllerOutputAttack = newOutputAttack;
+  }
+  get controllerOutputAttack(): ControllerOutputType {
+    return this._controllerOutputAttack;
+  }
+
+  set controllerOutputRelease(newOutputRelease: ControllerOutputType) {
+    this._controllerOutputRelease = newOutputRelease;
+  }
+  get controllerOutputRelease(): ControllerOutputType {
+    return this._controllerOutputRelease;
   }
 
   link() {
